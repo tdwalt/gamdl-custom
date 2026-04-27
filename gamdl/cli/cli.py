@@ -236,8 +236,14 @@ async def main(config: CliConfig):
 
         url_log.info(f'Processing "{url}"')
 
+        consecutive_existing_count = 0
+        stop_early = False
+
         try:
             async for download_item in downloader.get_download_item_from_url(url):
+                if stop_early:
+                    continue
+
                 media_index = download_item.media.index + 1
                 media_total = download_item.media.total or "-"
 
@@ -278,21 +284,37 @@ async def main(config: CliConfig):
                 try:
                     await downloader.download(download_item)
                     download_count += 1
+                    consecutive_existing_count = 0
+                except (
+                    GamdlDownloaderMediaFileExistsError,
+                    GamdlInterfaceFlatFilterExcludedError,
+                ) as e:
+                    track_log.warning(f'Skipping "{media_title}": {e}')
+                    consecutive_existing_count += 1
+                    if (
+                        config.stop_on_existing
+                        and consecutive_existing_count >= 1
+                    ):
+                        url_log.info(
+                            "Stopping early: encountered already-downloaded "
+                            "track(s) with --stop-on-existing enabled"
+                        )
+                        stop_early = True
+                    continue
                 except (
                     GamdlInterfaceMediaNotStreamableError,
                     GamdlInterfaceFormatNotAvailableError,
                     GamdlInterfaceDecryptionNotAvailableError,
                     GamdlInterfaceArtistMediaTypeError,
                     GamdlDownloaderSyncedLyricsOnlyError,
-                    GamdlDownloaderMediaFileExistsError,
                     GamdlDownloaderDependencyNotFoundError,
-                    GamdlInterfaceFlatFilterExcludedError,
                 ) as e:
                     track_log.warning(f'Skipping "{media_title}": {e}')
                     continue
                 except Exception as e:
                     error_count += 1
                     download_count += 1
+                    consecutive_existing_count = 0
                     track_log.exception(f'Error downloading "{media_title}"')
 
                 if (

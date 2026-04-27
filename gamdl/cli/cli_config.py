@@ -521,3 +521,11 @@ class CliConfig:
             default=0.0,
         ),
     ]
+    stop_on_existing: Annotated[
+        bool,
+        option(
+            "--stop-on-existing",
+            help="Stop downloading a playlist/album when an already-downloaded song is encountered (useful for updating playlists)",
+            is_flag=True,
+        ),
+    ]
