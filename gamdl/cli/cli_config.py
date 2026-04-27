@@ -513,3 +513,11 @@ class CliConfig:
             is_flag=True,
         ),
     ]
+    sleep: Annotated[
+        float,
+        option(
+            "--sleep",
+            help="Sleep duration in seconds between each song download",
+            default=0.0,
+        ),
+    ]

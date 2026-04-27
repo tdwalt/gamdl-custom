@@ -230,6 +230,7 @@ async def main(config: CliConfig):
         urls = config.urls
 
     error_count = 0
+    download_count = 0
     for url_index, url in enumerate(urls, 1):
         url_log = logger.bind(action=f"URL {url_index:>3}/{len(urls):<3}")
 
@@ -268,8 +269,15 @@ async def main(config: CliConfig):
                 }:
                     track_log.info(f'Downloading "{media_title}"')
 
+                if config.sleep > 0 and download_count > 0:
+                    logger.debug(
+                        f"Sleeping for {config.sleep} seconds between downloads"
+                    )
+                    await asyncio.sleep(config.sleep)
+
                 try:
                     await downloader.download(download_item)
+                    download_count += 1
                 except (
                     GamdlInterfaceMediaNotStreamableError,
                     GamdlInterfaceFormatNotAvailableError,
@@ -284,6 +292,7 @@ async def main(config: CliConfig):
                     continue
                 except Exception as e:
                     error_count += 1
+                    download_count += 1
                     track_log.exception(f'Error downloading "{media_title}"')
 
                 if (
